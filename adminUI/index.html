@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Hall Sensor BLE</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="plugins/fontawesome-free/css/all.min.css">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Tempusdominus Bbootstrap 4 -->
+  <link rel="stylesheet" href="plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css">
+  <!-- iCheck -->
+  <link rel="stylesheet" href="plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="dist/css/adminlte.min.css">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
+  <!-- Google Font: Source Sans Pro -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  <script src="plugins/jquery/jquery.min.js"></script>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+
+  <script>
+  $(document).ready(function() {
+    $('#bt').on('click', function(){
+      navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['automation_io']
+          })
+          .then(device => {
+            console.log(device.name);
+            return device.gatt.connect();
+          /* ... */ })
+          .then(server => {
+            return server.getPrimaryService("automation_io");
+          })
+          .then(service => {
+            return service.getCharacteristic('analog');
+          })
+          .then(characteristic => {
+            console.log("Notifications have been requested.");
+            return characteristic.startNotifications();
+          })
+          .then(characteristic => {
+            characteristic.addEventListener(
+                  'characteristicvaluechanged',
+                  handleChange
+                );
+            return characteristic.readValue();
+          })
+          .catch(error => { console.log(error); });
+    });
+    var dataPoints = [];
+    var chart = new CanvasJS.Chart("chartContainer", {
+      theme: "light2",
+      data: [{
+        type: "spline",
+        dataPoints: dataPoints
+      }]
+    });
+
+    // Initial Values
+    var xValue = 0;
+    var yValue = 0;
+
+    var yvals = [];
+
+    updateData(xValue, yValue);
+
+    function updateData(value) {
+      dataPoints.push({x: xValue++, y: value});
+      chart.render();
+    }
+
+    function updateStats() {
+      $('h3#minval').html(Math.min.apply(Math,yvals));
+      $('h3#maxval').html(Math.max.apply(Math,yvals));
+      $('h3#msgn').html(yvals.length);
+    }
+    function handleChange(event){
+        let value = event.target.value.getUint8(0);
+        yvals.push(value);
+        updateData(value);
+        updateStats();
+    }
+  });
+  </script>
+
+<div class="wrapper">
+
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+    </ul>
+    <!-- Right navbar links -->
+
+  </nav>
+  <!-- /.navbar -->
+
+  <!-- Main Sidebar Container -->
+  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="index.html" class="brand-link">
+      <span class="brand-text font-weight-light">Hall Sensor BLE</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Sidebar user panel (optional) -->
+      <!-- Sidebar Menu -->
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+          <li class="nav-item has-treeview menu-open">
+            <a href="#" class="nav-link active">
+              <i class="nav-icon fas fa-tachometer-alt"></i>
+              <p>
+                Dashboard
+              </p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+  </aside>
+
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0 text-dark">Dashboard</h1>
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="card p-2">
+            <div class="row">
+              <div class="col p-3">
+                <h3>Válassz eszközt!</h3>
+                <button id="bt" class="btn btn-primary">Eszköz választása</button>
+              </div>
+              <div class="col">
+                <div class="row">
+                  <div class="col-lg-4 col-6">
+                    <!-- small box -->
+                    <div class="small-box bg-info">
+                      <div class="inner">
+                        <h3 id="msgn">0</h3>
+
+                        <p>Üzenetek száma</p>
+                      </div>
+                      <div class="icon">
+                        <i class="far fa-comment-dots"></i>
+                      </div>
+
+                    </div>
+                  </div>
+                  <!-- ./col -->
+                  <div class="col-lg-4 col-6">
+                    <!-- small box -->
+                    <div class="small-box bg-success">
+                      <div class="inner">
+                        <h3 id="maxval">0</h3>
+
+                        <p>Maximum érték</p>
+                      </div>
+                      <div class="icon">
+                        <i class="fas fa-arrow-up"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- ./col -->
+                  <div class="col-lg-4 col-6">
+                    <!-- small box -->
+                    <div class="small-box bg-warning">
+                      <div class="inner">
+                        <h3 id="minval">0</h3>
+
+                        <p>Minimum érték</p>
+                      </div>
+                      <div class="icon">
+                        <i class="fas fa-arrow-down"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+        </div>
+      </div>
+      <div class="container-fluid">
+
+
+        <!-- Main row -->
+        <div class="row">
+          <!-- Left col -->
+          <section class="col-lg-12 connectedSortable">
+            <!-- Custom tabs (Charts with tabs)-->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-chart-line mr-1"></i>
+                  Vonaldiagram
+                </h3>
+                <div class="card-tools">
+
+                </div>
+              </div><!-- /.card-header -->
+              <div class="card-body">
+                <div class="tab-content p-0">
+                <div id="chartContainer" style="height: 370px; width: 100%;"></div>
+                </div>
+              </div><!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+          </section>
+          <!-- /.Left col -->
+
+        </div>
+        <!-- /.row (main row) -->
+      </div><!-- /.container-fluid -->
+    </section>
+    <!-- /.content -->
+  </div>
+  <!-- /.content-wrapper -->
+
+  <!-- Control Sidebar -->
+  <aside class="control-sidebar control-sidebar-dark">
+    <!-- Control sidebar content goes here -->
+  </aside>
+  <!-- /.control-sidebar -->
+</div>
+<!-- ./wrapper -->
+
+
+<!-- Bootstrap 4 -->
+<script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Tempusdominus Bootstrap 4 -->
+<script src="plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js"></script>
+<!-- overlayScrollbars -->
+<script src="plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
+<!-- AdminLTE App -->
+<script src="dist/js/adminlte.js"></script>
+<!-- AdminLTE dashboard demo (This is only for demo purposes) -->
+<script src="dist/js/pages/dashboard.js"></script>
+<!-- AdminLTE for demo purposes -->
+<script src="dist/js/demo.js"></script>
+<script src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js"></script>
+</body>
+</html>
